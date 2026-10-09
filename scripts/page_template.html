@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рабочий отчет</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f3f1ea;
+    color: #1c1c1a;
+    font: 18px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  .board {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0.75rem 0.75rem 5.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .cal {
+    width: min(20rem, 100%);
+    padding: 0.7rem 0.65rem 0.8rem;
+    background: #fffdf8;
+    border: 1px solid #e4ddd2;
+    border-radius: 0.8rem;
+  }
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-bottom: 0.45rem;
+  }
+  .cal-nav strong {
+    font-size: 1rem;
+    font-weight: 650;
+  }
+  .cal-nav button,
+  .cal-day {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .cal-nav button {
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 999px;
+  }
+  .cal-nav button:hover,
+  .cal-day:hover { background: #f3efe6; }
+  .cal-dow,
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+  }
+  .cal-dow span {
+    font-size: 0.72rem;
+    color: #8a8176;
+    padding-bottom: 0.2rem;
+  }
+  .cal-day {
+    margin: 0.08rem;
+    padding: 0.28rem 0 0.15rem;
+    border-radius: 0.45rem;
+    font-size: 0.86rem;
+  }
+  .cal-day.outside { color: #b7aea3; }
+  .cal-day.is-selected { background: #f6efe2; }
+  .cal-day.is-today {
+    background: #e8b84a;
+    color: #1c1c1a;
+    font-weight: 700;
+  }
+  .cal-day.has-notes { font-weight: 650; }
+  .day-row {
+    flex: 1;
+    width: 100%;
+    margin-top: 0.75rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    align-items: stretch;
+  }
+  .day-nav {
+    align-self: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid #e4ddd2;
+    border-radius: 999px;
+    background: #fffdf8;
+    color: inherit;
+    font: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .day-nav:hover { background: #f3efe6; }
+  #day { min-width: 0; display: flex; }
+  .card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 62vh;
+    padding: 1rem 1.15rem 1.3rem;
+    background: #fffdf8;
+    border: 1px solid #e4ddd2;
+    border-radius: 0.75rem;
+  }
+  .card header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    margin-bottom: 0.85rem;
+    text-align: center;
+  }
+  .card .dow {
+    font-size: 20px;
+    color: #8a8176;
+    text-transform: lowercase;
+  }
+  .card .num {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .card.today {
+    background: #fff6e4;
+    border-color: #e0b15a;
+    box-shadow: inset 0 0 0 1px #e0b15a;
+  }
+  .card.today .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.2rem;
+    padding: 0.15rem 0.85rem;
+    border-radius: 999px;
+    background: #e8b84a;
+  }
+  .card h2 {
+    margin: 0.7rem 0 0.15rem;
+    font-size: 20px;
+    font-weight: 650;
+    color: #5c564c;
+  }
+  .card ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-width: 0;
+  }
+  .card li {
+    margin: 0.7rem 0;
+    font-size: 21px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  .twist,
+  .marker {
+    flex: 0 0 auto;
+    width: 1.6rem;
+    height: 1.6rem;
+    margin: 0.12rem 0 0;
+    padding: 0;
+  }
+  .twist {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .twist::before {
+    content: "";
+    display: block;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0.58rem 0 0.58rem 0.92rem;
+    border-color: transparent transparent transparent #1c1c1a;
+    transform-origin: 30% 50%;
+  }
+  .twist.open::before { transform: rotate(90deg); }
+  .title {
+    min-width: 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .title:focus,
+  .detail:focus {
+    background: #fff;
+    border-radius: 0.2rem;
+    box-shadow: 0 0 0 1px #d9d3c7;
+    outline: none;
+  }
+  .detail {
+    margin: 0.35rem 0 0.2rem 2.05rem;
+    font-size: 20px;
+    font-weight: 400;
+    color: #3a342c;
+    white-space: pre-wrap;
+  }
+  #save-status {
+    position: fixed;
+    right: 1rem;
+    bottom: 3.6rem;
+    margin: 0;
+    font-size: 0.85rem;
+    color: #5c564c;
+  }
+  #report {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 2;
+    font-size: 0.95rem;
+  }
+  #report-open,
+  #report-download,
+  .report-presets button {
+    border: 1px solid #e4ddd2;
+    background: #fffdf8;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  #report-open,
+  #report-download {
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+  }
+  #report-open:hover,
+  #report-download:hover,
+  .report-presets button:hover { background: #f3efe6; }
+  #report-panel {
+    position: absolute;
+    right: 0;
+    bottom: 2.7rem;
+    width: 22rem;
+    padding: 0.8rem;
+    background: #fffdf8;
+    border: 1px solid #e4ddd2;
+    border-radius: 0.8rem;
+    box-shadow: 0 8px 24px rgba(40, 32, 20, 0.08);
+  }
+  #report-panel[hidden] { display: none; }
+  .report-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.7rem;
+  }
+  .report-presets button {
+    border-radius: 999px;
+    padding: 0.22rem 0.7rem;
+  }
+  .report-presets button.active {
+    background: #e8b84a;
+    border-color: #e0b15a;
+  }
+  .report-dates {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .report-dates label {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    color: #5c564c;
+  }
+  .report-dates input {
+    font: inherit;
+    color: inherit;
+    padding: 0.28rem 0.4rem;
+    border: 1px solid #e4ddd2;
+    border-radius: 0.4rem;
+    background: #fff;
+  }
+  #power {
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    max-width: 24rem;
+    font-size: 0.85rem;
+    color: #5c564c;
+  }
+  #power p { margin: 0.35rem 0 0; }
+  .power-line {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+  }
+  #power-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: #b9b2a6;
+  }
+  #power.on #power-dot { background: #2f7d4a; }
+  #power.off #power-dot { background: #a33b32; }
+  #power-stop,
+  #power-terminal {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  #power summary {
+    display: inline;
+    margin-top: 0.35rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  #power summary::-webkit-details-marker { display: none; }
+  #power code {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    white-space: pre;
+    overflow-x: auto;
+  }
+</style>
+</head>
+<body>
+<main class="board">
+  <aside class="cal" aria-label="Выбор дня">
+    <div class="cal-nav">
+      <button type="button" id="year-prev" aria-label="Предыдущий год">‹</button>
+      <strong id="year-label"></strong>
+      <button type="button" id="year-next" aria-label="Следующий год">›</button>
+    </div>
+    <div class="cal-nav">
+      <button type="button" id="month-prev" aria-label="Предыдущий месяц">‹</button>
+      <strong id="month-label"></strong>
+      <button type="button" id="month-next" aria-label="Следующий месяц">›</button>
+    </div>
+    <div class="cal-dow" id="cal-dow"></div>
+    <div class="cal-grid" id="month-grid"></div>
+  </aside>
+  <section class="day-row">
+    <button type="button" class="day-nav" id="day-prev" aria-label="Предыдущий день">‹</button>
+    <div id="day"></div>
+    <button type="button" class="day-nav" id="day-next" aria-label="Следующий день">›</button>
+  </section>
+</main>
+<p id="save-status" aria-live="polite"></p>
+<div id="report">
+  <div id="report-panel" hidden>
+    <div class="report-presets">
+      <button type="button" data-preset="week">Неделя</button>
+      <button type="button" data-preset="month">Месяц</button>
+      <button type="button" data-preset="quarter">Квартал</button>
+      <button type="button" data-preset="year">Год</button>
+    </div>
+    <div class="report-dates">
+      <label>С <input type="date" id="report-from"></label>
+      <label>По <input type="date" id="report-to"></label>
+    </div>
+    <button type="button" id="report-download">Скачать</button>
+  </div>
+  <button type="button" id="report-open">Сформировать отчет</button>
+</div>
+<aside id="power">
+  <p class="power-line">
+    <span id="power-dot"></span>
+    <span id="power-label">проверяю…</span>
+    <button type="button" id="power-stop" hidden>Остановить</button>
+  </p>
+  <p id="power-start" hidden>
+    <a id="power-terminal" href="workjournal://start">Открыть Терминал</a><br>
+    После входа в систему включится сама.
+  </p>
+  <details>
+    <summary>Команды</summary>
+    <p>Остановить
+      <code>launchctl bootout gui/$(id -u)/local.work-journal</code>
+    </p>
+    <p>Включить
+      <code>launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/local.work-journal.plist"</code>
+    </p>
+  </details>
+</aside>
+<script id="journal-data" type="application/json">__DATA__</script>
+<script>
+const SAVE_URL = "http://__HOST__:__PORT__/item";
+const HEALTH_URL = "http://__HOST__:__PORT__/health";
+const STOP_URL = "http://__HOST__:__PORT__/stop";
+const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+const MONTHS_NOM = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+const DOW = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+const journal = JSON.parse(document.getElementById("journal-data").textContent);
+const byDate = new Map(journal.days.map((day) => [day.date, day]));
+const today = parseISO(journal.today);
+let selected = new Date(today.getTime());
+let viewYear = today.getFullYear();
+let viewMonth = today.getMonth();
+
+function parseISO(iso) {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function toISO(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return date.getFullYear() + "-" + month + "-" + day;
+}
+
+function mondayOf(date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const offset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - offset);
+  return start;
+}
+
+function sameDay(left, right) {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+}
+
+function shiftMonth(delta) {
+  const next = new Date(viewYear, viewMonth + delta, 1);
+  viewYear = next.getFullYear();
+  viewMonth = next.getMonth();
+  renderMonth();
+}
+
+function dayTitle(date) {
+  return date.getDate() + " " + MONTHS[date.getMonth()] + " " + date.getFullYear();
+}
+
+function itemNode(item) {
+  const li = document.createElement("li");
+  li.dataset.id = item.id;
+  li.dataset.title = item.title;
+  const title = document.createElement("strong");
+  title.className = "title";
+  title.contentEditable = "true";
+  title.spellcheck = true;
+  title.textContent = item.title;
+  const line = document.createElement("div");
+  line.className = "line";
+  if (!item.detail) {
+    const marker = document.createElement("span");
+    marker.className = "marker";
+    marker.setAttribute("aria-hidden", "true");
+    line.append(marker, title);
+    li.append(line);
+    return li;
+  }
+  const twist = document.createElement("button");
+  twist.type = "button";
+  twist.className = "twist";
+  twist.setAttribute("aria-expanded", "false");
+  twist.setAttribute("aria-label", "Подробность");
+  const detail = document.createElement("p");
+  detail.className = "detail";
+  detail.hidden = true;
+  detail.contentEditable = "true";
+  detail.spellcheck = true;
+  detail.textContent = item.detail;
+  line.append(twist, title);
+  li.append(line, detail);
+  return li;
+}
+
+function renderDay() {
+  const host = document.getElementById("day");
+  host.replaceChildren();
+  const card = document.createElement("article");
+  card.className = "card";
+  if (sameDay(selected, today)) card.classList.add("today");
+  const header = document.createElement("header");
+  const dow = document.createElement("span");
+  dow.className = "dow";
+  dow.textContent = DOW[(selected.getDay() + 6) % 7];
+  const num = document.createElement("span");
+  num.className = "num";
+  num.textContent = dayTitle(selected);
+  header.append(dow, num);
+  card.append(header);
+  const day = byDate.get(toISO(selected));
+  if (day) {
+    day.projects.forEach((project) => {
+      if (!project.items.length) return;
+      const heading = document.createElement("h2");
+      heading.textContent = project.name;
+      const list = document.createElement("ul");
+      project.items.forEach((item) => list.append(itemNode(item)));
+      card.append(heading, list);
+    });
+  }
+  host.append(card);
+  bindEditors(card);
+}
+
+function selectDay(date) {
+  selected = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  viewYear = selected.getFullYear();
+  viewMonth = selected.getMonth();
+  renderDay();
+  renderMonth();
+}
+
+function shiftDay(delta) {
+  selectDay(new Date(selected.getFullYear(), selected.getMonth(), selected.getDate() + delta));
+}
+
+function renderMonth() {
+  document.getElementById("year-label").textContent = String(viewYear);
+  document.getElementById("month-label").textContent = MONTHS_NOM[viewMonth];
+  const dow = document.getElementById("cal-dow");
+  if (!dow.childElementCount) {
+    DOW.forEach((name) => {
+      const span = document.createElement("span");
+      span.textContent = name;
+      dow.append(span);
+    });
+  }
+  const grid = document.getElementById("month-grid");
+  grid.replaceChildren();
+  const start = mondayOf(new Date(viewYear, viewMonth, 1));
+  for (let index = 0; index < 42; index += 1) {
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
+    if (index >= 35 && date.getMonth() !== viewMonth) break;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "cal-day";
+    button.textContent = String(date.getDate());
+    button.dataset.iso = toISO(date);
+    if (date.getMonth() !== viewMonth) button.classList.add("outside");
+    if (sameDay(date, today)) button.classList.add("is-today");
+    if (sameDay(date, selected)) button.classList.add("is-selected");
+    if (byDate.has(toISO(date))) button.classList.add("has-notes");
+    button.addEventListener("click", () => selectDay(date));
+    grid.append(button);
+  }
+}
+
+function bindEditors(root) {
+  root.querySelectorAll(".twist").forEach((button) => {
+    button.addEventListener("click", () => {
+      const detail = button.closest("li").querySelector(".detail");
+      const open = detail.hasAttribute("hidden");
+      if (open) detail.removeAttribute("hidden");
+      else detail.setAttribute("hidden", "");
+      button.classList.toggle("open", open);
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  });
+  root.querySelectorAll(".title, .detail").forEach((field) => {
+    field.addEventListener("paste", plainPaste);
+    field.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const node = field.closest("li");
+      if (event.shiftKey) {
+        insertParagraph();
+        schedule(node);
+        return;
+      }
+      field.blur();
+    });
+    field.addEventListener("input", () => schedule(field.closest("li")));
+    field.addEventListener("blur", () => saveItem(field.closest("li")));
+  });
+}
+
+const status = document.getElementById("save-status");
+
+function setStatus(text) {
+  status.textContent = text;
+}
+
+function fieldText(node) {
+  return node.innerText.replace(/\u00a0/g, " ");
+}
+
+function insertParagraph() {
+  const selection = window.getSelection();
+  if (!selection.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const text = document.createTextNode("\n");
+  range.insertNode(text);
+  range.setStartAfter(text);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function plainPaste(event) {
+  event.preventDefault();
+  const text = (event.clipboardData || window.clipboardData).getData("text/plain");
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  document.execCommand("insertText", false, lines.map((line) => line.replace(/[^\S\n]+/g, " ").trim()).join("\n"));
+}
+
+function schedule(node) {
+  clearTimeout(node._timer);
+  node._timer = setTimeout(() => saveItem(node), 500);
+}
+
+async function saveItem(node) {
+  const title = fieldText(node.querySelector(".title"));
+  const detailNode = node.querySelector(".detail");
+  const detail = detailNode ? fieldText(detailNode) : "";
+  if (!title.trim()) {
+    node.querySelector(".title").textContent = node.dataset.title || "";
+    setStatus("заголовок не может быть пустым");
+    return;
+  }
+  try {
+    const response = await fetch(SAVE_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({id: node.dataset.id, title, detail}),
+    });
+    if (!response.ok) throw new Error("save failed");
+    node.dataset.title = title.trim();
+    setStatus("сохранено");
+  } catch (error) {
+    setStatus("не сохранилось");
+  }
+}
+
+document.getElementById("year-prev").addEventListener("click", () => shiftMonth(-12));
+document.getElementById("year-next").addEventListener("click", () => shiftMonth(12));
+document.getElementById("month-prev").addEventListener("click", () => shiftMonth(-1));
+document.getElementById("month-next").addEventListener("click", () => shiftMonth(1));
+document.getElementById("day-prev").addEventListener("click", () => shiftDay(-1));
+document.getElementById("day-next").addEventListener("click", () => shiftDay(1));
+document.addEventListener("keydown", (event) => {
+  if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  const target = event.target;
+  if (target && (target.isContentEditable || target.closest("input, textarea, select"))) return;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  shiftDay(event.key === "ArrowLeft" ? -1 : 1);
+});
+renderDay();
+renderMonth();
+
+const power = document.getElementById("power");
+const powerLabel = document.getElementById("power-label");
+const powerStop = document.getElementById("power-stop");
+const powerStart = document.getElementById("power-start");
+
+function setPower(on) {
+  power.classList.toggle("on", on);
+  power.classList.toggle("off", !on);
+  powerLabel.textContent = on ? "работает" : "не работает";
+  powerStop.hidden = !on;
+  powerStop.disabled = false;
+  powerStart.hidden = on;
+}
+
+async function refreshPower() {
+  try {
+    const response = await fetch(HEALTH_URL, {cache: "no-store"});
+    setPower(response.ok);
+  } catch (error) {
+    setPower(false);
+  }
+}
+
+powerStop.addEventListener("click", async () => {
+  powerStop.disabled = true;
+  powerLabel.textContent = "останавливаю…";
+  try {
+    await fetch(STOP_URL, {method: "POST"});
+  } catch (error) {}
+  setTimeout(refreshPower, 700);
+});
+
+refreshPower();
+setInterval(refreshPower, 4000);
+
+function periodStart(kind) {
+  if (kind === "week") return mondayOf(today);
+  if (kind === "month") return new Date(today.getFullYear(), today.getMonth(), 1);
+  if (kind === "quarter") {
+    const month = Math.floor(today.getMonth() / 3) * 3;
+    return new Date(today.getFullYear(), month, 1);
+  }
+  return new Date(today.getFullYear(), 0, 1);
+}
+
+function applyPreset(kind) {
+  document.getElementById("report-from").value = toISO(periodStart(kind));
+  document.getElementById("report-to").value = toISO(today);
+  document.querySelectorAll("[data-preset]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.preset === kind);
+  });
+}
+
+function reportRows(from, to) {
+  const rows = [];
+  const cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  while (cursor.getTime() <= end.getTime()) {
+    const day = byDate.get(toISO(cursor));
+    if (day) {
+      day.projects.forEach((project) => {
+        project.items.forEach((item) => {
+          if (!String(item.title || "").trim()) return;
+          rows.push([dayTitle(cursor), item.title, item.detail || ""]);
+        });
+      });
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return rows;
+}
+
+function reportFileName(from, to) {
+  if (sameDay(from, to)) return "Рабочий отчет " + dayTitle(from) + ".xlsx";
+  const sameMonth = from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear();
+  const span = sameMonth
+    ? from.getDate() + "–" + to.getDate() + " " + MONTHS[from.getMonth()] + " " + from.getFullYear()
+    : dayTitle(from) + " – " + dayTitle(to);
+  return "Рабочий отчет " + span + ".xlsx";
+}
+
+function xmlText(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    }
+    table[index] = value >>> 0;
+  }
+  return table;
+})();
+
+function crc32(data) {
+  let value = 0xffffffff;
+  for (let index = 0; index < data.length; index += 1) {
+    value = CRC_TABLE[(value ^ data[index]) & 0xff] ^ (value >>> 8);
+  }
+  return (value ^ 0xffffffff) >>> 0;
+}
+
+function le(number, size) {
+  const bytes = new Uint8Array(size);
+  let value = number >>> 0;
+  for (let index = 0; index < size; index += 1) {
+    bytes[index] = value & 0xff;
+    value = Math.floor(value / 256);
+  }
+  return bytes;
+}
+
+function concatBytes(parts) {
+  const size = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(size);
+  let offset = 0;
+  parts.forEach((part) => {
+    out.set(part, offset);
+    offset += part.length;
+  });
+  return out;
+}
+
+function zipStore(files) {
+  const encoder = new TextEncoder();
+  const locals = [];
+  const central = [];
+  let offset = 0;
+  files.forEach((file) => {
+    const name = encoder.encode(file.name);
+    const data = encoder.encode(file.data);
+    const crc = crc32(data);
+    const local = concatBytes([
+      le(0x04034b50, 4), le(20, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 2),
+      le(crc, 4), le(data.length, 4), le(data.length, 4),
+      le(name.length, 2), le(0, 2), name, data,
+    ]);
+    locals.push(local);
+    central.push(concatBytes([
+      le(0x02014b50, 4), le(20, 2), le(20, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 2),
+      le(crc, 4), le(data.length, 4), le(data.length, 4),
+      le(name.length, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 4),
+      le(offset, 4), name,
+    ]));
+    offset += local.length;
+  });
+  const directory = concatBytes(central);
+  const end = concatBytes([
+    le(0x06054b50, 4), le(0, 2), le(0, 2),
+    le(files.length, 2), le(files.length, 2),
+    le(directory.length, 4), le(offset, 4), le(0, 2),
+  ]);
+  return concatBytes([...locals, directory, end]);
+}
+
+function sheetXml(rows) {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">',
+    '<dimension ref="A1:C' + (rows.length + 1) + '"/>',
+    "<cols>",
+    '<col min="1" max="1" width="22" customWidth="1"/>',
+    '<col min="2" max="2" width="55" customWidth="1"/>',
+    '<col min="3" max="3" width="55" customWidth="1"/>',
+    '<col min="4" max="16384" width="0" hidden="1" customWidth="1"/>',
+    "</cols>",
+    "<sheetData>",
+  ];
+  const all = [["Дата", "Результат", "Подробнее"], ...rows];
+  all.forEach((row, index) => {
+    const number = index + 1;
+    const style = index === 0 ? "1" : "0";
+    lines.push(
+      `<row r="${number}">` +
+      inlineCell("A" + number, row[0], style) +
+      inlineCell("B" + number, row[1], style) +
+      inlineCell("C" + number, row[2], style) +
+      "</row>"
+    );
+  });
+  lines.push("</sheetData></worksheet>");
+  return lines.join("");
+}
+
+function inlineCell(ref, text, style) {
+  const value = String(text);
+  const space = /^\s|\s$|\n/.test(value) ? ' xml:space="preserve"' : "";
+  return `<c r="${ref}" t="inlineStr" s="${style}"><is><t${space}>${xmlText(value)}</t></is></c>`;
+}
+
+function reportBytes(rows) {
+  const types = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+    '<Default Extension="xml" ContentType="application/xml"/>',
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>',
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>',
+    "</Types>",
+  ].join("");
+  const rels = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">',
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>',
+    "</Relationships>",
+  ].join("");
+  const workbook = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
+    '<sheets><sheet name="Отчет" sheetId="1" r:id="rId1"/></sheets>',
+    "</workbook>",
+  ].join("");
+  const workbookRels = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">',
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>',
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>',
+    "</Relationships>",
+  ].join("");
+  const styles = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">',
+    '<fonts count="2"><font><sz val="12"/><name val="Calibri"/></font>',
+    '<font><b/><sz val="12"/><name val="Calibri"/></font></fonts>',
+    '<fills count="2"><fill><patternFill patternType="none"/></fill>',
+    '<fill><patternFill patternType="gray125"/></fill></fills>',
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>',
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>',
+    '<cellXfs count="2">',
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>',
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>',
+    "</cellXfs></styleSheet>",
+  ].join("");
+  return zipStore([
+    {name: "[Content_Types].xml", data: types},
+    {name: "_rels/.rels", data: rels},
+    {name: "xl/workbook.xml", data: workbook},
+    {name: "xl/_rels/workbook.xml.rels", data: workbookRels},
+    {name: "xl/styles.xml", data: styles},
+    {name: "xl/worksheets/sheet1.xml", data: sheetXml(rows)},
+  ]);
+}
+
+function downloadReport(from, to) {
+  const rows = reportRows(from, to);
+  const blob = new Blob([reportBytes(rows)], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = reportFileName(from, to);
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
+const reportPanel = document.getElementById("report-panel");
+document.getElementById("report-open").addEventListener("click", () => {
+  const willOpen = reportPanel.hasAttribute("hidden");
+  if (willOpen) {
+    reportPanel.removeAttribute("hidden");
+    applyPreset("week");
+  } else {
+    reportPanel.setAttribute("hidden", "");
+  }
+});
+document.querySelectorAll("[data-preset]").forEach((button) => {
+  button.addEventListener("click", () => applyPreset(button.dataset.preset));
+});
+document.getElementById("report-from").addEventListener("input", () => {
+  document.querySelectorAll("[data-preset]").forEach((button) => button.classList.remove("active"));
+});
+document.getElementById("report-to").addEventListener("input", () => {
+  document.querySelectorAll("[data-preset]").forEach((button) => button.classList.remove("active"));
+});
+document.getElementById("report-download").addEventListener("click", () => {
+  const fromValue = document.getElementById("report-from").value;
+  const toValue = document.getElementById("report-to").value;
+  if (!fromValue || !toValue) return;
+  let from = parseISO(fromValue);
+  let to = parseISO(toValue);
+  if (from.getTime() > to.getTime()) {
+    const swap = from;
+    from = to;
+    to = swap;
+  }
+  downloadReport(from, to);
+});
+</script>
+</body>
+</html>

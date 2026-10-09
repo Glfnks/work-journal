@@ -1,0 +1,7 @@
+#!/bin/bash
+osascript <<'APPLESCRIPT'
+tell application "Terminal"
+  activate
+  do script "uid=$(id -u); launchctl print gui/$uid/local.work-journal >/dev/null 2>&1 || launchctl bootstrap gui/$uid \"$HOME/Library/LaunchAgents/local.work-journal.plist\""
+end tell
+APPLESCRIPT
